@@ -14,8 +14,6 @@
 #include "settings.h"
 
 void init_ui(SDL_Window* win, SDL_Renderer* renderer, float font_scale);
-void build_options_ui(SupportedBuildSystem* build_system_choice);
-void drawContent();
 void whileLoop(SDL_Window* win, SDL_Renderer* renderer);
 
 #endif // UI_H

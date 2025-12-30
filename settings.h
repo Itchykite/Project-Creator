@@ -10,6 +10,7 @@
 
 extern const char c_main_content[];
 extern const char c_main_makefile[];
+extern const char c_main_cmake[];
 
 extern const char cpp_main_content[];
 extern const char cpp_main_makefile[];
@@ -29,7 +30,9 @@ typedef enum {
     ERR_FILE_CREATION_FAILED,
     ERR_UNSUPPORTED_EXTENSION,
     ERR_INVALID_ARGUMENTS,
-    ERR_INVALID_ARGUMENTS_BUILD_SYSTEM
+    ERR_INVALID_ARGUMENTS_BUILD_SYSTEM,
+    ERR_DIRECTORY_ALREADY_EXISTS,
+    ERR_DIRECTORY_CREATION_FAILED
 } Error;
 
 typedef enum {

@@ -1,8 +1,9 @@
-#include "ui.h"
-#include "create_project.h"
-
+#include "settings.h"
 #define NK_SDL_RENDERER_IMPLEMENTATION
 #define NK_IMPLEMENTATION
+
+#include "ui.h"
+#include "create_project.h"
 
 struct nk_context* ctx;
 
@@ -42,12 +43,76 @@ void build_options_ui(SupportedBuildSystem* build_system_choice)
     }
 }
 
+void extensions_options_ui(SupportedExtension* extension_choice)
+{
+    nk_layout_row_dynamic(ctx, 30, 2);
+    nk_label(ctx, "File extension:", NK_TEXT_LEFT);
+    if (nk_combo_begin_label(ctx, supported_extensions[*extension_choice], nk_vec2(200, 200)))
+    {
+        nk_layout_row_dynamic(ctx, 25, 1);
+        const size_t extensions_count = supported_extensions_count;
+        for (size_t i = 0; i < extensions_count; i++)
+        {
+            if (nk_combo_item_label(ctx, supported_extensions[i], NK_TEXT_LEFT))
+            {
+                *extension_choice = (SupportedExtension)i;
+            }
+        }
+        nk_combo_end(ctx);
+    }
+}
+
+void error_message(ProjectOptions project_options, const char** error_msg, struct nk_color* err_msg_color)
+{
+    if (project_options.err == ERR_OK)
+    {
+        *error_msg = "Project created successfully!";
+        *err_msg_color = nk_rgb(0, 255, 0);
+    }
+    else if (project_options.err == ERR_DIRECTORY_CREATION_FAILED)
+    {
+        *error_msg = "Error: Failed to create project directory.";
+        *err_msg_color = nk_rgb(255, 0, 0);
+    }
+    else if (project_options.err == ERR_DIRECTORY_ALREADY_EXISTS)
+    {
+        *error_msg = "Error: Directory already exists.";
+        *err_msg_color = nk_rgb(255, 0, 0);
+    }
+    else if (project_options.err ==  ERR_FILE_CREATION_FAILED)
+    {
+        *error_msg = "Error: Failed to create project files.";
+        *err_msg_color = nk_rgb(255, 0, 0);
+    }
+    else if (project_options.err == ERR_UNSUPPORTED_EXTENSION)
+    {
+        *error_msg = "Error: Unsupported file extension.";
+        *err_msg_color = nk_rgb(255, 0, 0);
+    }
+    else if (project_options.err == ERR_INVALID_ARGUMENTS)
+    {
+        *error_msg = "Error: Invalid arguments provided.";
+        *err_msg_color = nk_rgb(255, 0, 0);
+    }
+    else if (project_options.err == ERR_INVALID_ARGUMENTS_BUILD_SYSTEM)
+    {
+        *error_msg = "Error: Invalid build system for selected language.";
+        *err_msg_color = nk_rgb(255, 0, 0);
+    }
+    else
+    {
+        *error_msg = "Error: An unknown error occurred.";
+        *err_msg_color = nk_rgb(255, 0, 0);
+    }
+}
+
 void drawContent()
 {
     nk_flags window_flags = NK_WINDOW_BORDER;
 
     ProjectOptions project_options;
     static int build_system_index = 0;
+    static int extension_index = 0;
 
     static const char* error_msg = "";
     static struct nk_color err_msg_color;
@@ -55,53 +120,39 @@ void drawContent()
     if (nk_begin(ctx, "Project Creator", nk_rect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT), window_flags))
     {
         static char filename[64];
-        static char extension[8];
 
         nk_layout_row_dynamic(ctx, 30, 1);
         nk_label(ctx, "Enter the project filename / path (without extension):", NK_TEXT_LEFT);
         nk_edit_string_zero_terminated(ctx, NK_EDIT_SIMPLE, filename, sizeof(filename), nk_filter_default);
 
-        nk_layout_row_dynamic(ctx, 30, 1);
-        nk_label(ctx, "Enter the file extension (.c, .cpp, .go, .zig):", NK_TEXT_LEFT);
-        nk_edit_string_zero_terminated(ctx, NK_EDIT_SIMPLE, extension, sizeof(extension), nk_filter_default);
+        int previous_extension_index = extension_index;
+        extensions_options_ui((SupportedExtension*)&extension_index);
 
-        build_options_ui((SupportedBuildSystem*)&build_system_index);
+        if (extension_index != previous_extension_index)
+        {
+            if (extension_index != EXT_C || extension_index != EXT_CPP)
+            {
+                build_system_index = BUILD_MAKEFILE; 
+            }
+        }
+
+        if (extension_index == EXT_C || extension_index == EXT_CPP)
+        {
+            build_options_ui((SupportedBuildSystem*)&build_system_index);
+        }
+        else
+        {
+            nk_layout_row_dynamic(ctx, 30, 2);
+            nk_label(ctx, "Build System:", NK_TEXT_LEFT);
+            nk_label_colored(ctx, "(uses built-in toolchain)", NK_TEXT_LEFT, nk_rgb(180, 180, 180));
+        }
 
         nk_layout_row_dynamic(ctx, 30, 1);
         if (nk_button_label(ctx, "Create Project"))
         {
-            project_options = create_project(filename, extension, (SupportedBuildSystem)build_system_index);
+            project_options = create_project(filename, (SupportedExtension)extension_index, (SupportedBuildSystem)build_system_index);
 
-            if (project_options.err == ERR_OK)
-            {
-                error_msg = "Project created successfully!";
-                err_msg_color = nk_rgb(0, 255, 0);
-            }
-            else if (project_options.err ==  ERR_FILE_CREATION_FAILED)
-            {
-                error_msg = "Error: Failed to create project files.";
-                err_msg_color = nk_rgb(255, 0, 0);
-            }
-            else if (project_options.err == ERR_UNSUPPORTED_EXTENSION)
-            {
-                error_msg = "Error: Unsupported file extension.";
-                err_msg_color = nk_rgb(255, 0, 0);
-            }
-            else if (project_options.err == ERR_INVALID_ARGUMENTS)
-            {
-                error_msg = "Error: Invalid arguments provided.";
-                err_msg_color = nk_rgb(255, 0, 0);
-            }
-            else if (project_options.err == ERR_INVALID_ARGUMENTS_BUILD_SYSTEM)
-            {
-                error_msg = "Error: Invalid build system for selected language.";
-                err_msg_color = nk_rgb(255, 0, 0);
-            }
-            else
-            {
-                error_msg = "Error: An unknown error occurred.";
-                err_msg_color = nk_rgb(255, 0, 0);
-            }
+            error_message(project_options, &error_msg, &err_msg_color);
         }
         
         if (error_msg[0] != '\0')

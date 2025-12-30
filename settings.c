@@ -5,7 +5,7 @@ const char c_main_content[] =
     "\n"
     "int main(void)\n"
     "{\n"
-    "\tprintf(\"Hello, World!\");"
+    "    printf(\"Hello, World!\");"
     "\n\treturn 0;"
     "\n}";
 
@@ -23,12 +23,20 @@ const char c_main_makefile[] =
     "hellomake: $(OBJ)\n"
     "\t$(CC) -o $@ $^ $(CFLAGS)";
 
+const char c_main_cmake[] = 
+    "cmake_minimum_required(VERSION 3.10)\n"
+    "project(HelloWorld C)\n"
+    "\n"
+    "set(CMAKE_C_STANDARD 11)\n"
+    "\n"
+    "add_executable(helloworld main.c)";
+
 const char cpp_main_content[] = 
     "#include <iostream>\n"
     "\n"
     "int main()\n" 
     "{\n"
-    "\tstd::cout << \"Hello, World!\" << std::endl;\n"
+    "    std::cout << \"Hello, World!\" << std::endl;\n"
     "\treturn 0;\n"
     "}";
 
@@ -60,14 +68,14 @@ const char go_main_content[] =
     "import \"fmt\"\n"
     "\n"
     "func main() {\n"
-    "\tfmt.Println(\"Hello, World!\")\n"
+    "    fmt.Println(\"Hello, World!\")\n"
     "}";
 
 const char zig_main_content[] = 
     "const std = @import(\"std\");\n"
     "\n"
     "pub fn main() void {\n"
-    "\tstd.debug.print(\"Hello, World!\\n\", .{});\n"
+    "    std.debug.print(\"Hello, World!\\n\", .{});\n"
     "}";
 
 const char* const supported_extensions[] = { ".c", ".cpp", ".go", ".zig" }; 
