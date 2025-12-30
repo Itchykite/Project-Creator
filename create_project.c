@@ -1,37 +1,21 @@
-#include "create_project.h"
-#include "settings.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
-StringResult strcat_const(const char* str1, const char* str2)
-{
-    const size_t str1_len = strlen(str1);
-    const size_t str2_len = strlen(str2);
-    const size_t concat_len = str1_len + str2_len;
+#include "create_project.h"
+#include "settings.h"
+#include "utils.h"
 
-    char* buffer = malloc(concat_len + 1);
-    if (!buffer)
-    {
-        return (StringResult){ .str = NULL, .err = ERR_FILE_CREATION_FAILED };
-    }
-
-    memcpy(buffer, str1, str1_len);
-    memcpy(buffer + str1_len, str2, str2_len);
-    buffer[concat_len] = '\0';
-
-    return (StringResult){ .str = buffer, .err = ERR_OK };
-}
-
-ProjectOptions create_project(const char* project_name, SupportedExtension extension, SupportedBuildSystem build_system)
+ProjectOptions create_project(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, SupportedTemplates template_type,
+                              const char* extra_flags)
 {
     ProjectOptions options = {0};
     options.extension = extension;
     options.build_system = build_system;
+    options.template_type = template_type;
 
-    if (!project_name || project_name[0] == '\0' || extension >= supported_extensions_count)
+    if (!filename || filename[0] == '\0' || !project_name || project_name[0] == '\0' || extension >= supported_extensions_count)
     {
         fprintf(stderr, "Error: Invalid arguments provided.\n");
         options.err = ERR_INVALID_ARGUMENTS;
@@ -53,81 +37,283 @@ ProjectOptions create_project(const char* project_name, SupportedExtension exten
         return options;
     }
 
+    ProjectTemplateProperties template_props = create_project_template(project_name, filename, extension, build_system, template_type, extra_flags);
+    options.err = template_props.err;
+
+    return options;
+}
+
+ProjectTemplateProperties create_project_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, SupportedTemplates template_type,
+                                                  const char* extra_flags)
+{
+    ProjectTemplateProperties properties = {0};
+
+    switch (template_type)
+    {
+        case MAIN_TEMPLATE_C:
+            if (extension == EXT_C)
+            {
+                properties = create_main_c_template(project_name, filename, extension, build_system, extra_flags);
+            }
+            else if (extension == EXT_CPP)
+            {
+                properties = create_main_cpp_template(project_name, filename, extension, build_system, extra_flags);
+            }
+            else if (extension == EXT_GO)
+            {
+                properties = create_main_go_template(project_name, filename);
+            }
+            else if (extension == EXT_ZIG)
+            {
+                properties = create_main_zig_template(project_name, filename);
+            }
+            break;
+
+        case SDL_TEMPLATE_C:
+            properties = create_sdl_c_template(project_name, filename, extension, build_system, extra_flags);
+            break;
+
+        default:
+            fprintf(stderr, "Error:  Unsupported template type.\n");
+            properties.err = ERR_INVALID_ARGUMENTS;
+            break;
+    }
+
+    return properties;
+}
+
+ProjectTemplateProperties create_main_c_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags)
+{
+    ProjectTemplateProperties properties = {0};
+    properties.flags = "";
+    properties.code = c_main_content;
+
     char main_filepath[256];
-    snprintf(main_filepath, sizeof(main_filepath), "%s/main%s", project_name, supported_extensions[extension]);
+    snprintf(main_filepath, sizeof(main_filepath), "%s/%s%s", project_name, filename, supported_extensions[extension]);
 
     FILE* f_main = fopen(main_filepath, "w");
     if (!f_main)
     {
         fprintf(stderr, "Error: Failed to create main source file '%s'.\n", main_filepath);
-        options.err = ERR_FILE_CREATION_FAILED;
-        return options;
+        properties.err = ERR_FILE_CREATION_FAILED;
+        return properties;
     }
 
-    const char* main_content = NULL;
-    switch (extension)
-    {
-        case EXT_C:    main_content = c_main_content; break;
-        case EXT_CPP:  main_content = cpp_main_content; break;
-        case EXT_GO:   main_content = go_main_content; break;
-        case EXT_ZIG:  main_content = zig_main_content; break;
-        default: break; 
-    }
-    fprintf(f_main, "%s", main_content);
+    fprintf(f_main, "%s", properties.code);
     fclose(f_main);
 
-    if (extension == EXT_GO || extension == EXT_ZIG)
+    ConstStringResult build_result = build_system_filename(project_name, filename, build_system, extension, extra_flags ? extra_flags : "");
+    if (build_result.err != ERR_OK)
     {
-        char command[512];
-        if (extension == EXT_GO) 
-        {
-            snprintf(command, sizeof(command), "cd %s && go mod init %s", project_name, project_name);
-        } 
-        else if (extension == EXT_ZIG) 
-        { 
-            snprintf(command, sizeof(command), "rm %s && cd %s && zig init-exe", main_filepath, project_name);
-        }
-        
-        if (system(command) != 0) {
-            fprintf(stderr, "Warning: Failed to run init command for the language.\n");
-        }
-        options.err = ERR_OK;
-        return options;
+        properties.err = build_result.err;
+        return properties;
     }
-    
-    const char* build_filename_part = NULL;
-    const char* build_content = NULL;
 
-    if (build_system == BUILD_MAKEFILE) 
+    const char* build_filename_part = NULL;
+    const char* build_content = build_result.str;
+
+    if (build_system == BUILD_MAKEFILE)
     {
         build_filename_part = "Makefile";
-        if (extension == EXT_C) build_content = c_main_makefile;
-        else if (extension == EXT_CPP) build_content = cpp_main_makefile;
-    } 
-    else if (build_system == BUILD_CMAKE) 
+    }
+    else if (build_system == BUILD_CMAKE)
     {
         build_filename_part = "CMakeLists.txt";
-        if (extension == EXT_CPP) build_content = cpp_main_cmake;
-        else if (extension == EXT_C) build_content = c_main_cmake;
     }
 
-    if (build_filename_part && build_content) 
+    if (build_filename_part && build_content)
     {
         char build_filepath[256];
         snprintf(build_filepath, sizeof(build_filepath), "%s/%s", project_name, build_filename_part);
 
         FILE* f_build = fopen(build_filepath, "w");
-        if (!f_build) 
+        if (!f_build)
         {
             fprintf(stderr, "Error: Failed to create build file '%s'.\n", build_filepath);
-            options.err = ERR_FILE_CREATION_FAILED;
-            return options;
+            properties.err = ERR_FILE_CREATION_FAILED;
+            return properties;
         }
 
         fprintf(f_build, "%s", build_content);
         fclose(f_build);
     }
-    
-    options.err = ERR_OK;
-    return options;
+
+    properties.err = ERR_OK;
+    return properties;
+}
+
+ProjectTemplateProperties create_main_cpp_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags)
+{
+    ProjectTemplateProperties properties = {0};
+    properties.flags = "";
+    properties.code = cpp_main_content;
+
+    char main_filepath[256];
+    snprintf(main_filepath, sizeof(main_filepath), "%s/%s%s", project_name, filename, supported_extensions[extension]);
+
+    FILE* f_main = fopen(main_filepath, "w");
+    if (!f_main)
+    {
+        fprintf(stderr, "Error: Failed to create main source file '%s'.\n", main_filepath);
+        properties.err = ERR_FILE_CREATION_FAILED;
+        return properties;
+    }
+
+    fprintf(f_main, "%s", properties.code);
+    fclose(f_main);
+
+    ConstStringResult build_result = build_system_filename(project_name, filename, build_system, extension, extra_flags ? extra_flags : "");
+    if (build_result.err != ERR_OK)
+    {
+        properties.err = build_result.err;
+        return properties;
+    }
+
+    const char* build_filename_part = NULL;
+    const char* build_content = build_result.str;
+
+    if (build_system == BUILD_MAKEFILE)
+    {
+        build_filename_part = "Makefile";
+    }
+    else if (build_system == BUILD_CMAKE)
+    {
+        build_filename_part = "CMakeLists.txt";
+    }
+
+    if (build_filename_part && build_content)
+    {
+        char build_filepath[256];
+        snprintf(build_filepath, sizeof(build_filepath), "%s/%s", project_name, build_filename_part);
+
+        FILE* f_build = fopen(build_filepath, "w");
+        if (!f_build)
+        {
+            fprintf(stderr, "Error: Failed to create build file '%s'.\n", build_filepath);
+            properties.err = ERR_FILE_CREATION_FAILED;
+            return properties;
+        }
+
+        fprintf(f_build, "%s", build_content);
+        fclose(f_build);
+    }
+
+    properties.err = ERR_OK;
+    return properties;
+}
+
+ProjectTemplateProperties create_main_go_template(const char* project_name, const char* filename)
+{
+    ProjectTemplateProperties properties = {0};
+    properties.flags = "";
+    properties.code = go_main_content;
+
+    char main_filepath[256];
+    snprintf(main_filepath, sizeof(main_filepath), "%s/%s%s", project_name, filename, supported_extensions[EXT_GO]);
+
+    FILE* f_main = fopen(main_filepath, "w");
+    if (!f_main)
+    {
+        fprintf(stderr, "Error: Failed to create main source file '%s'.\n", main_filepath);
+        properties.err = ERR_FILE_CREATION_FAILED;
+        return properties;
+    }
+
+    fprintf(f_main, "%s", properties.code);
+    fclose(f_main);
+
+    char command[512];
+    snprintf(command, sizeof(command), "cd %s && go mod init %s", project_name, filename);
+
+    if (system(command) != 0)
+    {
+        fprintf(stderr, "Warning: Failed to run 'go mod init'.\n");
+    }
+
+    properties.err = ERR_OK;
+    return properties;
+}
+
+ProjectTemplateProperties create_main_zig_template(const char* project_name, const char* filename)
+{
+    ProjectTemplateProperties properties = {0};
+    properties.flags = "";
+    properties.code = zig_main_content;
+
+    char main_filepath[256];
+    snprintf(main_filepath, sizeof(main_filepath), "%s/%s%s", project_name, filename, supported_extensions[EXT_ZIG]);
+
+    char command[512];
+    snprintf(command, sizeof(command), "cd %s && zig init-exe", project_name);
+
+    if (system(command) != 0)
+    {
+        fprintf(stderr, "Warning: Failed to run 'zig init-exe'.\n");
+    }
+
+    properties.err = ERR_OK;
+    return properties;
+}
+
+ProjectTemplateProperties create_sdl_c_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags)
+{
+    ProjectTemplateProperties properties = {0};
+    properties.flags = "-lSDL2";
+    properties.code = "#include <SDL2/SDL.h>\n\nint main(int argc, char* argv[]) {\n    SDL_Init(SDL_INIT_VIDEO);\n    SDL_Quit();\n    return 0;\n}\n";
+
+    char main_filepath[256];
+    snprintf(main_filepath, sizeof(main_filepath), "%s/%s%s", project_name, filename, supported_extensions[extension]);
+
+    FILE* f_main = fopen(main_filepath, "w");
+    if (!f_main)
+    {
+        fprintf(stderr, "Error: Failed to create main source file '%s'.\n", main_filepath);
+        properties.err = ERR_FILE_CREATION_FAILED;
+        return properties;
+    }
+
+    fprintf(f_main, "%s", properties.code);
+    fclose(f_main);
+
+    char combined_flags[512];
+    snprintf(combined_flags, sizeof(combined_flags), "%s %s", properties.flags, extra_flags ? extra_flags : "");
+
+    ConstStringResult build_result = build_system_filename(project_name, filename, build_system, extension, combined_flags);
+    if (build_result.err != ERR_OK)
+    {
+        properties.err = build_result.err;
+        return properties;
+    }
+
+    const char* build_filename_part = NULL;
+    const char* build_content = build_result.str;
+
+    if (build_system == BUILD_MAKEFILE)
+    {
+        build_filename_part = "Makefile";
+    }
+    else if (build_system == BUILD_CMAKE)
+    {
+        build_filename_part = "CMakeLists.txt";
+    }
+
+    if (build_filename_part && build_content)
+    {
+        char build_filepath[256];
+        snprintf(build_filepath, sizeof(build_filepath), "%s/%s", project_name, build_filename_part);
+
+        FILE* f_build = fopen(build_filepath, "w");
+        if (!f_build)
+        {
+            fprintf(stderr, "Error: Failed to create build file '%s'.\n", build_filepath);
+            properties.err = ERR_FILE_CREATION_FAILED;
+            return properties;
+        }
+
+        fprintf(f_build, "%s", build_content);
+        fclose(f_build);
+    }
+
+    properties.err = ERR_OK;
+    return properties;
 }

@@ -1,10 +1,10 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -lm
-LDFLAGS = `sdl2-config --cflags --libs`
+CFLAGS = -Wall -Wextra -O2 
+LDFLAGS = `sdl2-config --cflags --libs` -lm
 
 BUILD_DIR = build
 
-SRCS = main.c create_project.c settings.c window.c ui.c
+SRCS = main.c create_project.c settings.c window.c ui.c utils.c
 OBJS = $(SRCS: %.c=$(BUILD_DIR)/%.o)
 
 TARGET = $(BUILD_DIR)/Project_Creator
