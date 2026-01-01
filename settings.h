@@ -13,6 +13,9 @@ extern const char cpp_main_content[];
 extern const char go_main_content[];
 extern const char zig_main_content[];
 
+extern const char sdl2_c_template[];
+extern const char sdl2_cpp_template[];
+
 extern const char* const supported_extensions[];
 extern const size_t supported_extensions_count;
 extern const char* const supported_build_systems[];

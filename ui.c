@@ -1,4 +1,5 @@
 #include "settings.h"
+#include <stdbool.h>
 #define NK_SDL_RENDERER_IMPLEMENTATION
 #define NK_IMPLEMENTATION
 
@@ -163,7 +164,7 @@ void error_message(ProjectOptions project_options, const char** error_msg, struc
     }
 }
 
-void drawContent()
+bool drawContent()
 {
     nk_flags window_flags = NK_WINDOW_BORDER;
 
@@ -198,6 +199,8 @@ void drawContent()
             project_options = create_project(project_name, filename, (SupportedExtension)extension_index, (SupportedBuildSystem)build_system_index, (SupportedTemplates)template_index, extra_flags);
 
             error_message(project_options, &error_msg, &err_msg_color);
+
+            return true;
         }
 
         if (error_msg[0] != '\0')
@@ -207,6 +210,8 @@ void drawContent()
         }
     }
     nk_end(ctx);
+
+    return false;
 }
 
 void whileLoop(SDL_Window* win, SDL_Renderer* renderer)
@@ -230,7 +235,8 @@ void whileLoop(SDL_Window* win, SDL_Renderer* renderer)
         nk_sdl_handle_grab();
         nk_input_end(ctx);
 
-        drawContent();
+        if (drawContent() == true)
+            running = 0;
 
         SDL_SetRenderDrawColor(renderer, (Uint8)(bg.r * 255), (Uint8)(bg.g * 255), (Uint8)(bg.b * 255), (Uint8)(bg.a * 255));
         SDL_RenderClear(renderer);
@@ -244,4 +250,5 @@ void whileLoop(SDL_Window* win, SDL_Renderer* renderer)
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(win);
     SDL_Quit();
+    exit(0);
 }
