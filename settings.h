@@ -2,6 +2,7 @@
 #define SETTINGS_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
@@ -18,6 +19,8 @@ extern char* zig_main_content;
 
 extern char* sdl2_c_template;
 extern char* sdl2_cpp_template;
+extern char* sdl3_c_template;
+extern char* sdl3_cpp_template;
 
 extern const char* const supported_extensions[];
 extern const size_t supported_extensions_count;
@@ -25,7 +28,6 @@ extern const char* const supported_build_systems[];
 extern const size_t supported_build_systems_count;
 extern const char* const supported_templates[];
 extern const size_t supported_templates_count;
-#define SUPPORTED_TEMPLATES_COUNT 2 // needed coz of project_template_ui which needs a number in compilation
 
 typedef enum {
     ERR_OK = 0,
@@ -51,7 +53,8 @@ typedef enum {
 
 typedef enum {
     MAIN_TEMPLATE,
-    SDL_TEMPLATE
+    SDL2_TEMPLATE,
+    SDL3_TEMPLATE
 } SupportedTemplates;
 
 typedef struct {
@@ -87,5 +90,7 @@ typedef struct {
     SupportedTemplates template_type;
     Error err;
 } ProjectOptions;
+
+bool is_template_available(SupportedTemplates template_type, SupportedExtension extension);
 
 #endif // SETTINGS_H

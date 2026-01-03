@@ -72,7 +72,7 @@ ProjectTemplateProperties create_project_template(const char* project_name, cons
             }
             break;
 
-        case SDL_TEMPLATE:
+        case SDL2_TEMPLATE:
             switch (extension)
             {
                 case EXT_C:
@@ -83,6 +83,22 @@ ProjectTemplateProperties create_project_template(const char* project_name, cons
                     break;
                 default:
                     fprintf(stderr, "Error:  Unsupported file extension for SDL2 template.\n");
+                    properties.err = ERR_UNSUPPORTED_EXTENSION;
+                    break;
+            }
+            break;
+
+        case SDL3_TEMPLATE:
+            switch (extension)
+            {
+                case EXT_C:
+                    properties = create_sdl3_c_template(project_name, filename, extension, build_system, extra_flags);
+                    break;
+                case EXT_CPP:
+                    properties = create_sdl3_cpp_template(project_name, filename, extension, build_system, extra_flags);
+                    break;
+                default:
+                    fprintf(stderr, "Error:  Unsupported file extension for SDL3 template.\n");
                     properties.err = ERR_UNSUPPORTED_EXTENSION;
                     break;
             }
@@ -340,6 +356,134 @@ ProjectTemplateProperties create_sdl2_cpp_template(const char* project_name, con
     ProjectTemplateProperties properties = {0};
     properties.flags = "-lSDL2";
     properties.code = sdl2_cpp_template;
+
+    char main_filepath[256];
+
+    snprintf(main_filepath, sizeof(main_filepath), "%s/%s%s", project_name, filename, supported_extensions[extension]);
+
+    FILE* f_main = fopen(main_filepath, "w");
+    if (!f_main)
+    {
+        fprintf(stderr, "Error: Failed to create main source file '%s'.\n", main_filepath);
+        properties.err = ERR_FILE_CREATION_FAILED;
+        return properties;
+    }
+
+    fprintf(f_main, "%s", properties.code);
+    fclose(f_main);
+
+    char combined_flags[512];
+    snprintf(combined_flags, sizeof(combined_flags), "%s %s", properties.flags, extra_flags ? extra_flags : "");
+
+    ConstStringResult build_result = build_system_filename(project_name, filename, build_system, extension, combined_flags);
+    if (build_result.err != ERR_OK)
+    {
+        properties.err = build_result.err;
+        return properties;
+    }
+
+    const char* build_filename_part = NULL;
+    const char* build_content = build_result.str;
+
+    if (build_system == BUILD_MAKEFILE)
+    {
+        build_filename_part = "Makefile";
+    }
+    else if (build_system == BUILD_CMAKE)
+    {
+        build_filename_part = "CMakeLists.txt";
+    }
+
+    if (build_filename_part && build_content)
+    {
+        char build_filepath[256];
+        snprintf(build_filepath, sizeof(build_filepath), "%s/%s", project_name, build_filename_part);
+
+        FILE* f_build = fopen(build_filepath, "w");
+        if (!f_build)
+        {
+            fprintf(stderr, "Error: Failed to create build file '%s'.\n", build_filepath);
+            properties.err = ERR_FILE_CREATION_FAILED;
+            return properties;
+        }
+
+        fprintf(f_build, "%s", build_content);
+        fclose(f_build);
+    }
+
+    properties.err = ERR_OK;
+    return properties;
+}
+
+ProjectTemplateProperties create_sdl3_c_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags)
+{
+    ProjectTemplateProperties properties = {0};
+    properties.flags = "-lSDL3";
+    properties.code = sdl3_c_template;
+
+    char main_filepath[256];
+
+    snprintf(main_filepath, sizeof(main_filepath), "%s/%s%s", project_name, filename, supported_extensions[extension]);
+
+    FILE* f_main = fopen(main_filepath, "w");
+    if (!f_main)
+    {
+        fprintf(stderr, "Error: Failed to create main source file '%s'.\n", main_filepath);
+        properties.err = ERR_FILE_CREATION_FAILED;
+        return properties;
+    }
+
+    fprintf(f_main, "%s", properties.code);
+    fclose(f_main);
+
+    char combined_flags[512];
+    snprintf(combined_flags, sizeof(combined_flags), "%s %s", properties.flags, extra_flags ? extra_flags : "");
+
+    ConstStringResult build_result = build_system_filename(project_name, filename, build_system, extension, combined_flags);
+    if (build_result.err != ERR_OK)
+    {
+        properties.err = build_result.err;
+        return properties;
+    }
+
+    const char* build_filename_part = NULL;
+    const char* build_content = build_result.str;
+
+    if (build_system == BUILD_MAKEFILE)
+    {
+        build_filename_part = "Makefile";
+    }
+    else if (build_system == BUILD_CMAKE)
+    {
+        build_filename_part = "CMakeLists.txt";
+    }
+
+    if (build_filename_part && build_content)
+    {
+        char build_filepath[256];
+        snprintf(build_filepath, sizeof(build_filepath), "%s/%s", project_name, build_filename_part);
+
+        FILE* f_build = fopen(build_filepath, "w");
+        if (!f_build)
+        {
+            fprintf(stderr, "Error: Failed to create build file '%s'.\n", build_filepath);
+            properties.err = ERR_FILE_CREATION_FAILED;
+            return properties;
+        }
+
+        fprintf(f_build, "%s", build_content);
+        fclose(f_build);
+    }
+
+    properties.err = ERR_OK;
+    return properties;
+}
+
+ProjectTemplateProperties create_sdl3_cpp_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags)
+{
+    ProjectTemplateProperties properties = {0};
+    properties.flags = "-lSDL3";
+    properties.code = sdl3_cpp_template;
 
     char main_filepath[256];
 

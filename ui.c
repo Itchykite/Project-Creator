@@ -99,21 +99,31 @@ void extensions_options_ui(SupportedExtension* extension_choice)
     }
 }
 
-void project_templates_ui(SupportedTemplates* template_choice)
+void project_templates_ui(SupportedTemplates* template_choice, int extension_index)
 {
     nk_layout_row_dynamic(ctx, 30, 2);
     nk_label(ctx, "Choose template:", NK_TEXT_LEFT);
+
+    if (!is_template_available(*template_choice, (SupportedExtension)extension_index))
+    {
+        *template_choice = MAIN_TEMPLATE;
+    }
+
     if (nk_combo_begin_label(ctx, supported_templates[*template_choice], nk_vec2(200, 200)))
     {
         nk_layout_row_dynamic(ctx, 25, 1);
-        const size_t templates_count = supported_templates_count;
-        for (size_t i = 0; i < templates_count; i++)
+
+        for (size_t i = 0; i < supported_templates_count; i++)
         {
-            if (nk_combo_item_label(ctx, supported_templates[i], NK_TEXT_LEFT))
+            if (is_template_available((SupportedTemplates)i, (SupportedExtension)extension_index))
             {
-                *template_choice = (SupportedTemplates)i;
+                if (nk_combo_item_label(ctx, supported_templates[i], NK_TEXT_LEFT))
+                {
+                    *template_choice = (SupportedTemplates)i;
+                }
             }
         }
+
         nk_combo_end(ctx);
     }
 }
@@ -190,7 +200,7 @@ bool drawContent()
 
         build_system_c_cpp(&extension_index, &previous_extension_index, &build_system_index);
 
-        project_templates_ui((SupportedTemplates*)&template_index);
+        project_templates_ui((SupportedTemplates*)&template_index, extension_index);
         project_extra_flags_ui(extra_flags, sizeof(extra_flags));
 
         nk_layout_row_dynamic(ctx, 30, 1);

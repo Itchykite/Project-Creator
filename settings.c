@@ -10,6 +10,8 @@ char* zig_main_content = NULL;
 
 char* sdl2_c_template = NULL;
 char* sdl2_cpp_template = NULL;
+char* sdl3_c_template = NULL;
+char* sdl3_cpp_template = NULL;
 
 FileResult read_file(const char* filename)
 {
@@ -109,6 +111,24 @@ void init_templates()
             sdl2_cpp_template = res.content;
         }
     }
+
+    if (sdl3_c_template == NULL)
+    {
+        FileResult res = read_file("templates/c_sdl3_content.c");
+        if (res.err == ERR_OK)
+        {
+            sdl3_c_template = res.content;
+        }
+    }
+
+    if (sdl3_cpp_template == NULL)
+    {
+        FileResult res = read_file("templates/cpp_sdl3_content.cpp");
+        if (res.err == ERR_OK)
+        {
+            sdl3_cpp_template = res.content;
+        }
+    }
 }
 
 void free_templates()
@@ -125,5 +145,20 @@ const char* const supported_extensions[] = {".c", ".cpp", ".go", ".zig"};
 const size_t supported_extensions_count = sizeof(supported_extensions) / sizeof(supported_extensions[0]);
 const char* const supported_build_systems[] = {"Makefile", "CMake"};
 const size_t supported_build_systems_count = sizeof(supported_build_systems) / sizeof(supported_build_systems[0]);
-const char* const supported_templates[] = {"main", "sdl2"};
+const char* const supported_templates[] = {"main", "sdl2", "sdl3"};
 const size_t supported_templates_count = sizeof(supported_templates) / sizeof(supported_templates[0]);
+
+bool is_template_available(SupportedTemplates template_type, SupportedExtension extension)
+{
+    switch (template_type)
+    {
+        case MAIN_TEMPLATE:
+            return true;
+        case SDL2_TEMPLATE:
+            return (extension == EXT_C || extension == EXT_CPP);
+        case SDL3_TEMPLATE:
+            return (extension == EXT_C || extension == EXT_CPP);
+        default:
+            return false;
+    }
+}
