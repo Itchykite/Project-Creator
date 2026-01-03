@@ -4,9 +4,59 @@
 #include <string.h>
 #include <stdio.h>
 
+void split_flags(const char* flags, char* c_flags, char* ld_flags)
+{
+    c_flags[0] = '\0';
+    ld_flags[0] = '\0';
+
+    if (flags == NULL || strlen(flags) == 0)
+    {
+        return;
+    }
+
+    char* flags_copy = strdup(flags);
+    if (!flags_copy)
+    {
+        fprintf(stderr, "Error: Memory allocation failed in split_flags\n");
+        return;
+    }
+
+    char* token = strtok(flags_copy, " ");
+    while (token != NULL)
+    {
+        if (token[0] == '-')
+        {
+            if (token[1] == 'l' || token[1] == 'L' || strncmp(token, "-Wl,", 4) == 0 || strcmp(token, "-pthread") == 0 || strcmp(token, "-static") == 0 || strcmp(token, "-shared") == 0)
+            {
+                strcat(ld_flags, token);
+                strcat(ld_flags, " ");
+            }
+            else
+            {
+                strcat(c_flags, token);
+                strcat(c_flags, " ");
+            }
+        }
+        else
+        {
+            strcat(c_flags, token);
+            strcat(c_flags, " ");
+        }
+
+        token = strtok(NULL, " ");
+    }
+
+    free(flags_copy);
+}
+
 ConstStringResult build_system_filename(const char* project_name, const char* filename, SupportedBuildSystem build_system, SupportedExtension extension, const char* extra_flags)
 {
     static char out_build[512];
+
+    char extra_c_flags[256] = "";
+    char extra_ld_flags[256] = "";
+
+    split_flags(extra_flags, extra_c_flags, extra_ld_flags);
 
     if (build_system == BUILD_MAKEFILE)
     {
@@ -15,6 +65,7 @@ ConstStringResult build_system_filename(const char* project_name, const char* fi
             snprintf(out_build, sizeof(out_build),
                      "CC=gcc\n"
                      "CFLAGS=-I. %s\n"
+                     "LDFLAGS= %s\n"
                      "\n"
                      "DEPS = %s.h\n"
                      "\n"
@@ -25,7 +76,7 @@ ConstStringResult build_system_filename(const char* project_name, const char* fi
                      "\n"
                      "%s: $(OBJ)\n"
                      "\t$(CC) -o $@ $^ $(CFLAGS)",
-                     extra_flags, filename, filename, project_name);
+                     extra_c_flags, extra_ld_flags, filename, filename, project_name);
             return (ConstStringResult){out_build, ERR_OK};
         }
         else if (extension == EXT_CPP)
@@ -33,6 +84,7 @@ ConstStringResult build_system_filename(const char* project_name, const char* fi
             snprintf(out_build, sizeof(out_build),
                      "CXX=g++\n"
                      "CXXFLAGS=-I. %s\n"
+                     "LDFLAGS= %s\n"
                      "\n"
                      "DEPS = %s.h\n"
                      "\n"
@@ -43,7 +95,7 @@ ConstStringResult build_system_filename(const char* project_name, const char* fi
                      "\n"
                      "%s:  $(OBJ)\n"
                      "\t$(CXX) -o $@ $^ $(CXXFLAGS)",
-                     extra_flags, filename, filename, project_name);
+                     extra_c_flags, extra_ld_flags, filename, filename, project_name);
             return (ConstStringResult){out_build, ERR_OK};
         }
     }
@@ -58,8 +110,8 @@ ConstStringResult build_system_filename(const char* project_name, const char* fi
                      "set(CMAKE_C_STANDARD 11)\n"
                      "\n"
                      "add_executable(%s %s. c)\n"
-                     "target_link_libraries(%s %s)",
-                     project_name, project_name, filename, project_name, extra_flags);
+                     "target_link_libraries(%s %s)\n",
+                     project_name, project_name, filename, project_name, extra_ld_flags);
             return (ConstStringResult){out_build, ERR_OK};
         }
         else if (extension == EXT_CPP)
@@ -71,8 +123,8 @@ ConstStringResult build_system_filename(const char* project_name, const char* fi
                      "set(CMAKE_CXX_STANDARD 11)\n"
                      "\n"
                      "add_executable(%s %s.cpp)\n"
-                     "target_link_libraries(%s %s)",
-                     project_name, project_name, filename, project_name, extra_flags);
+                     "target_link_libraries(%s %s)\n",
+                     project_name, project_name, filename, project_name, extra_ld_flags);
             return (ConstStringResult){out_build, ERR_OK};
         }
     }
