@@ -75,7 +75,7 @@ ConstStringResult build_system_filename(const char* project_name, const char* fi
                      "\t$(CC) -c -o $@ $< $(CFLAGS)\n"
                      "\n"
                      "%s: $(OBJ)\n"
-                     "\t$(CC) -o $@ $^ $(CFLAGS)",
+                     "\t$(CC) -o $@ $^ $(LDFLAGS)",
                      extra_c_flags, extra_ld_flags, filename, filename, project_name);
             return (ConstStringResult){out_build, ERR_OK};
         }
@@ -94,7 +94,7 @@ ConstStringResult build_system_filename(const char* project_name, const char* fi
                      "\t$(CXX) -c -o $@ $< $(CXXFLAGS)\n"
                      "\n"
                      "%s:  $(OBJ)\n"
-                     "\t$(CXX) -o $@ $^ $(CXXFLAGS)",
+                     "\t$(CXX) -o $@ $^ $(LDFLAGS)",
                      extra_c_flags, extra_ld_flags, filename, filename, project_name);
             return (ConstStringResult){out_build, ERR_OK};
         }

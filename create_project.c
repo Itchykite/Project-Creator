@@ -50,27 +50,42 @@ ProjectTemplateProperties create_project_template(const char* project_name, cons
 
     switch (template_type)
     {
-        case MAIN_TEMPLATE_C:
-            if (extension == EXT_C)
+        case MAIN_TEMPLATE:
+            switch (extension)
             {
-                properties = create_main_c_template(project_name, filename, extension, build_system, extra_flags);
-            }
-            else if (extension == EXT_CPP)
-            {
-                properties = create_main_cpp_template(project_name, filename, extension, build_system, extra_flags);
-            }
-            else if (extension == EXT_GO)
-            {
-                properties = create_main_go_template(project_name, filename);
-            }
-            else if (extension == EXT_ZIG)
-            {
-                properties = create_main_zig_template(project_name, filename);
+                case EXT_C:
+                    properties = create_main_c_template(project_name, filename, extension, build_system, extra_flags);
+                    break;
+                case EXT_CPP:
+                    properties = create_main_cpp_template(project_name, filename, extension, build_system, extra_flags);
+                    break;
+                case EXT_GO:
+                    properties = create_main_go_template(project_name, filename);
+                    break;
+                case EXT_ZIG:
+                    properties = create_main_zig_template(project_name, filename);
+                    break;
+                default:
+                    fprintf(stderr, "Error:  Unsupported file extension for main template.\n");
+                    properties.err = ERR_UNSUPPORTED_EXTENSION;
+                    break;
             }
             break;
 
-        case SDL_TEMPLATE_C:
-            properties = create_sdl_c_template(project_name, filename, extension, build_system, extra_flags);
+        case SDL_TEMPLATE:
+            switch (extension)
+            {
+                case EXT_C:
+                    properties = create_sdl2_c_template(project_name, filename, extension, build_system, extra_flags);
+                    break;
+                case EXT_CPP:
+                    properties = create_sdl2_cpp_template(project_name, filename, extension, build_system, extra_flags);
+                    break;
+                default:
+                    fprintf(stderr, "Error:  Unsupported file extension for SDL2 template.\n");
+                    properties.err = ERR_UNSUPPORTED_EXTENSION;
+                    break;
+            }
             break;
 
         default:
@@ -255,7 +270,7 @@ ProjectTemplateProperties create_main_zig_template(const char* project_name, con
     return properties;
 }
 
-ProjectTemplateProperties create_sdl_c_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags)
+ProjectTemplateProperties create_sdl2_c_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags)
 {
     ProjectTemplateProperties properties = {0};
     properties.flags = "-lSDL2";
@@ -278,6 +293,7 @@ ProjectTemplateProperties create_sdl_c_template(const char* project_name, const 
 
     char combined_flags[512];
     snprintf(combined_flags, sizeof(combined_flags), "%s %s", properties.flags, extra_flags ? extra_flags : "");
+    printf("Combined Flags: %s\n", combined_flags);
 
     ConstStringResult build_result = build_system_filename(project_name, filename, build_system, extension, combined_flags);
     if (build_result.err != ERR_OK)
@@ -319,7 +335,7 @@ ProjectTemplateProperties create_sdl_c_template(const char* project_name, const 
     return properties;
 }
 
-ProjectTemplateProperties create_sdl_cpp_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags)
+ProjectTemplateProperties create_sdl2_cpp_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags)
 {
     ProjectTemplateProperties properties = {0};
     properties.flags = "-lSDL2";

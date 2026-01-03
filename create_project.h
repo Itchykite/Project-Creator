@@ -14,6 +14,7 @@ ProjectTemplateProperties create_main_cpp_template(const char* project_name, con
 ProjectTemplateProperties create_main_go_template(const char* project_name, const char* filename);
 ProjectTemplateProperties create_main_zig_template(const char* project_name, const char* filename);
 
-ProjectTemplateProperties create_sdl_c_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags);
+ProjectTemplateProperties create_sdl2_c_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags);
+ProjectTemplateProperties create_sdl2_cpp_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, const char* extra_flags);
 
 #endif // CREATE_PROJECT_H

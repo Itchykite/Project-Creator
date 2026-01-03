@@ -8,13 +8,16 @@
 
 #define BUILD_SYSTEM_COUNT 2
 
-extern const char c_main_content[];
-extern const char cpp_main_content[];
-extern const char go_main_content[];
-extern const char zig_main_content[];
+void init_templates();
+void free_templates();
 
-extern const char sdl2_c_template[];
-extern const char sdl2_cpp_template[];
+extern char* c_main_content;
+extern char* cpp_main_content;
+extern char* go_main_content;
+extern char* zig_main_content;
+
+extern char* sdl2_c_template;
+extern char* sdl2_cpp_template;
 
 extern const char* const supported_extensions[];
 extern const size_t supported_extensions_count;
@@ -47,8 +50,8 @@ typedef enum {
 } SupportedBuildSystem;
 
 typedef enum {
-    MAIN_TEMPLATE_C,
-    SDL_TEMPLATE_C
+    MAIN_TEMPLATE,
+    SDL_TEMPLATE
 } SupportedTemplates;
 
 typedef struct {
@@ -60,6 +63,11 @@ typedef struct {
     const char* str;
     Error err;
 } ConstStringResult;
+
+typedef struct {
+    char* content;
+    Error err;
+} FileResult;
 
 typedef struct {
     const char* str1;
