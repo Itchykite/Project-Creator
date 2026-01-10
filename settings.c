@@ -13,6 +13,7 @@ char* sdl2_c_template = NULL;
 char* sdl2_cpp_template = NULL;
 char* sdl3_c_template = NULL;
 char* sdl3_cpp_template = NULL;
+char* sdl2_opengl_c_template = NULL;
 
 FileResult read_file(const char* filename)
 {
