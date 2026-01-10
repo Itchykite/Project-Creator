@@ -2,6 +2,7 @@
 #include "ui.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 char* c_main_content = NULL;
 char* cpp_main_content = NULL;
@@ -58,39 +59,13 @@ FileResult read_file(const char* filename)
 
 void init_templates()
 {
+    // C
     if (c_main_content == NULL)
     {
         FileResult res = read_file("templates/c_main_content.c");
         if (res.err == ERR_OK)
         {
             c_main_content = res.content;
-        }
-    }
-
-    if (cpp_main_content == NULL)
-    {
-        FileResult res = read_file("templates/cpp_main_content.cpp");
-        if (res.err == ERR_OK)
-        {
-            cpp_main_content = res.content;
-        }
-    }
-
-    if (go_main_content == NULL)
-    {
-        FileResult res = read_file("templates/go_main_content.go");
-        if (res.err == ERR_OK)
-        {
-            go_main_content = res.content;
-        }
-    }
-
-    if (zig_main_content == NULL)
-    {
-        FileResult res = read_file("templates/zig_main_content.zig");
-        if (res.err == ERR_OK)
-        {
-            zig_main_content = res.content;
         }
     }
 
@@ -103,15 +78,6 @@ void init_templates()
         }
     }
 
-    if (sdl2_cpp_template == NULL)
-    {
-        FileResult res = read_file("templates/cpp_sdl2_content.cpp");
-        if (res.err == ERR_OK)
-        {
-            sdl2_cpp_template = res.content;
-        }
-    }
-
     if (sdl3_c_template == NULL)
     {
         FileResult res = read_file("templates/c_sdl3_content.c");
@@ -121,12 +87,60 @@ void init_templates()
         }
     }
 
+    if (sdl2_opengl_c_template == NULL)
+    {
+        FileResult res = read_file("templates/c_sdl2_opengl_content.c");
+        if (res.err == ERR_OK)
+        {
+            sdl2_opengl_c_template = res.content;
+        }
+    }
+
+    // C++
+    if (cpp_main_content == NULL)
+    {
+        FileResult res = read_file("templates/cpp_main_content.cpp");
+        if (res.err == ERR_OK)
+        {
+            cpp_main_content = res.content;
+        }
+    }
+
+    if (sdl2_cpp_template == NULL)
+    {
+        FileResult res = read_file("templates/cpp_sdl2_content.cpp");
+        if (res.err == ERR_OK)
+        {
+            sdl2_cpp_template = res.content;
+        }
+    }
+
     if (sdl3_cpp_template == NULL)
     {
         FileResult res = read_file("templates/cpp_sdl3_content.cpp");
         if (res.err == ERR_OK)
         {
             sdl3_cpp_template = res.content;
+        }
+    }
+
+    // Go
+    if (go_main_content == NULL)
+    {
+        FileResult res = read_file("templates/go_main_content.go");
+        if (res.err == ERR_OK)
+        {
+            go_main_content = res.content;
+        }
+    }
+
+    // Zig
+    if (zig_main_content == NULL)
+    {
+        FileResult res = read_file("templates/zig_main_content.zig");
+        if (res.err == ERR_OK)
+        {
+            zig_main_content = res.content;
         }
     }
 }

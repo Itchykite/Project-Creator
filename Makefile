@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 
+CFLAGS = -Wall -Wextra -O2 -g 
 LDFLAGS = `sdl2-config --cflags --libs` -lm
 
 BUILD_DIR = build

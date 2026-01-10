@@ -13,14 +13,17 @@ void init_templates();
 void free_templates();
 
 extern char* c_main_content;
-extern char* cpp_main_content;
-extern char* go_main_content;
-extern char* zig_main_content;
-
 extern char* sdl2_c_template;
-extern char* sdl2_cpp_template;
 extern char* sdl3_c_template;
+extern char* sdl2_opengl_c_template;
+
+extern char* cpp_main_content;
+extern char* sdl2_cpp_template;
 extern char* sdl3_cpp_template;
+
+extern char* go_main_content;
+
+extern char* zig_main_content;
 
 extern const char* const supported_extensions[];
 extern const size_t supported_extensions_count;
@@ -54,7 +57,8 @@ typedef enum {
 typedef enum {
     MAIN_TEMPLATE,
     SDL2_TEMPLATE,
-    SDL3_TEMPLATE
+    SDL3_TEMPLATE,
+    SDL2_OPENGL_TEMPLATE
 } SupportedTemplates;
 
 typedef struct {
