@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
@@ -7,47 +6,29 @@
 #include "settings.h"
 #include "utils.h"
 
-ProjectOptions create_project(const char* project_name, const char* filename, SupportedExtension extension,
-                              SupportedBuildSystem build_system, SupportedTemplates template_type,
-                              const char* extra_flags)
+const char* combined_flags(const char* extra_flags, const char* template_flags)
 {
-    ProjectOptions options = {0};
-    options.extension = extension;
-    options.build_system = build_system;
-    options.template_type = template_type;
+    static char combined[256];
+    combined[0] = '\0';
 
-    if (!filename || filename[0] == '\0' || !project_name || project_name[0] == '\0' ||
-        extension >= supported_extensions_count)
+    if (extra_flags && extra_flags[0] != '\0')
     {
-        fprintf(stderr, "Error: Invalid arguments provided.\n");
-        options.err = ERR_INVALID_ARGUMENTS;
-        return options;
+        strcat(combined, extra_flags);
+        if (template_flags && template_flags[0] != '\0')
+        {
+            strcat(combined, " ");
+        }
     }
 
-    struct stat st = {0};
-    if (stat(project_name, &st) != -1)
+    if (template_flags && template_flags[0] != '\0')
     {
-        fprintf(stderr, "Error: Directory '%s' already exists.\n", project_name);
-        options.err = ERR_DIRECTORY_ALREADY_EXISTS;
-        return options;
+        strcat(combined, template_flags);
     }
 
-    if (mkdir(project_name, 0755) != 0)
-    {
-        fprintf(stderr, "Error: Failed to create directory '%s'.\n", project_name);
-        options.err = ERR_DIRECTORY_CREATION_FAILED;
-        return options;
-    }
-
-    ProjectTemplateProperties template_props =
-        create_template(project_name, filename, extension, build_system, template_type, extra_flags);
-    options.err = template_props.err;
-
-    return options;
+    return combined;
 }
 
-ProjectTemplateProperties create_template(const char* project_name, const char* filename, SupportedExtension extension,
-                                          SupportedBuildSystem build_system, SupportedTemplates template_type,
+ProjectTemplateProperties create_template(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, SupportedTemplates template_type,
                                           const char* extra_flags)
 {
     ProjectTemplateProperties properties = {0};
@@ -63,6 +44,12 @@ ProjectTemplateProperties create_template(const char* project_name, const char* 
                     break;
                 case EXT_CPP:
                     properties.code = cpp_main_content;
+                    break;
+                case EXT_GO:
+                    properties.code = go_main_content;
+                    break;
+                case EXT_ZIG:
+                    properties.code = zig_main_content;
                     break;
                 default:
                     properties.code = "";
@@ -120,8 +107,7 @@ ProjectTemplateProperties create_template(const char* project_name, const char* 
     fprintf(f_main, "%s", properties.code);
     fclose(f_main);
 
-    ConstStringResult build_result =
-        build_system_filename(project_name, filename, build_system, extension, extra_flags ? extra_flags : "");
+    ConstStringResult build_result = build_system_filename(project_name, filename, build_system, extension, combined_flags(extra_flags, properties.flags));
     if (build_result.err != ERR_OK)
     {
         properties.err = build_result.err;
@@ -131,18 +117,18 @@ ProjectTemplateProperties create_template(const char* project_name, const char* 
     const char* build_filename_part = NULL;
     const char* build_content = build_result.str;
 
-    if (build_system == BUILD_MAKEFILE)
-    {
-        build_filename_part = "Makefile";
-    }
-    else if (build_system == BUILD_CMAKE)
-    {
-        build_filename_part = "CMakeLists.txt";
-    }
-    else
+    if (extension == EXT_GO || extension == EXT_ZIG)
     {
         build_filename_part = NULL;
         build_content = NULL;
+    }
+    else if (build_system == BUILD_MAKEFILE && extension != EXT_GO && extension != EXT_ZIG)
+    {
+        build_filename_part = "Makefile";
+    }
+    else if (build_system == BUILD_CMAKE && extension != EXT_GO && extension != EXT_ZIG)
+    {
+        build_filename_part = "CMakeLists.txt";
     }
 
     if (build_filename_part && build_content)
@@ -164,4 +150,40 @@ ProjectTemplateProperties create_template(const char* project_name, const char* 
 
     properties.err = ERR_OK;
     return properties;
+}
+
+ProjectOptions create_project(const char* project_name, const char* filename, SupportedExtension extension, SupportedBuildSystem build_system, SupportedTemplates template_type,
+                              const char* extra_flags)
+{
+    ProjectOptions options = {0};
+    options.extension = extension;
+    options.build_system = build_system;
+    options.template_type = template_type;
+
+    if (!filename || filename[0] == '\0' || !project_name || project_name[0] == '\0' || extension >= supported_extensions_count)
+    {
+        fprintf(stderr, "Error: Invalid arguments provided.\n");
+        options.err = ERR_INVALID_ARGUMENTS;
+        return options;
+    }
+
+    struct stat st = {0};
+    if (stat(project_name, &st) != -1)
+    {
+        fprintf(stderr, "Error: Directory '%s' already exists.\n", project_name);
+        options.err = ERR_DIRECTORY_ALREADY_EXISTS;
+        return options;
+    }
+
+    if (mkdir(project_name, 0755) != 0)
+    {
+        fprintf(stderr, "Error: Failed to create directory '%s'.\n", project_name);
+        options.err = ERR_DIRECTORY_CREATION_FAILED;
+        return options;
+    }
+
+    ProjectTemplateProperties template_props = create_template(project_name, filename, extension, build_system, template_type, extra_flags);
+    options.err = template_props.err;
+
+    return options;
 }

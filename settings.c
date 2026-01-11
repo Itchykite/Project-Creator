@@ -27,7 +27,6 @@ FileResult read_file(const char* filename)
         return result;
     }
 
-    // Znajdź rozmiar pliku
     fseek(file, 0, SEEK_END);
     long file_size = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -40,7 +39,6 @@ FileResult read_file(const char* filename)
         return result;
     }
 
-    // Alokuj pamięć
     result.content = malloc(file_size + 1);
     if (!result.content)
     {
@@ -50,7 +48,6 @@ FileResult read_file(const char* filename)
         return result;
     }
 
-    // Wczytaj plik
     size_t bytes_read = fread(result.content, 1, file_size, file);
     result.content[bytes_read] = '\0';
 
